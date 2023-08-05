@@ -5,16 +5,27 @@
 # Date: 4/8/23
 
 from fastapi import FastAPI, HTTPException     # pylint: disable=import-error
+from fastapi import BackgroundTasks
 from googleapiclient.discovery import build    # pylint: disable=import-error
 from googleapiclient.errors import HttpError 
-from pytube import YouTube
+import asyncio
 from utils import Utils
-
+import json
+ 
 app = FastAPI()
 
 # Put here the development key. You can produce one on the following link: https://console.cloud.google.com/
-DEVELOPER_KEY = "AIzaSyDP6t5n7aRYob0AcUVzjga-KXXPXhyVVa4"
-BASE_PATH = "/Users/ninasiam/Documents/my_projects/utube_video_converter"
+# Opening JSON file to fetch the key
+c_file = open("../dev_key.json")
+ 
+# returns JSON object as
+# a dictionary
+data = json.load(c_file)
+print(data)
+DEVELOPER_KEY = data["dev_key"]
+
+# Base path where the audio files are saved
+BASE_PATH = "/audio_files/"
 
 # API parameters to build the resource to communicate with the API
 API_SERVICE_NAME = "youtube"
@@ -25,7 +36,7 @@ youtube_api = build(serviceName=API_SERVICE_NAME, version=API_VERSION, developer
 
 # Define the get method with the video-data endpoint
 @app.get("/video-data/")
-async def get_video_data(video_url: str):
+async def get_video_data(video_url: str, background_tasks: BackgroundTasks):
     """_summary_
 
     Args:
@@ -55,6 +66,10 @@ async def get_video_data(video_url: str):
         # path to the downloaded video
         output_path = Utils.download_video(video_url, BASE_PATH)
         print(output_path)
+
+        background_tasks.add_task(Utils.analyze_audio, output_path)
+    
+
         return {
             "title": video_snippet['title'],
             "published_at": video_snippet['publishedAt'],
@@ -64,6 +79,7 @@ async def get_video_data(video_url: str):
             "like_count": video_statistics["likeCount"],
             "comment_count": video_statistics["commentCount"]
         }
+    
     # Error Handling
     except IndexError as e:
         raise HTTPException(status_code=404, detail="This url does not correspond to a video, please try again!")
