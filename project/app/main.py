@@ -24,7 +24,7 @@ data = json.load(c_file)
 print(data)
 DEVELOPER_KEY = data["dev_key"]
 
-# Base path where the audio files are saved
+# Base path where the audio files and csv are saved
 BASE_PATH = "/audio_files/"
 
 # API parameters to build the resource to communicate with the API
